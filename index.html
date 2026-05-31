@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณชั่วโมงจิตอาสา (Volunteer Hours Tracker)</title>
+    <!-- Use Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Remix Icons for crisp UI icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --secondary: #4169e1;
+            --bg-dark: #0f1016;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #a0a0b0;
+            --success: #00fa9a;
+            --danger: #ff4757;
+            --font-en: 'Outfit', sans-serif;
+            --font-th: 'Sarabun', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-th);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(138, 43, 226, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(65, 105, 225, 0.15), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-en);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Glassmorphism Card Base */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* Header & API Key */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo i {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .api-key-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-glass {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            font-family: var(--font-en);
+            outline: none;
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .input-glass:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metric-card {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        .metric-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: var(--font-th);
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: var(--font-en);
+            background: linear-gradient(135deg, #fff, #a0a0b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--card-border);
+            border-radius: 20px;
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.01);
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(138, 43, 226, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: translateY(-10px);
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-subtext {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: none;
+            margin-top: 1.5rem;
+            text-align: left;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Certificates List */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .list-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: var(--font-th);
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .cert-card {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .cert-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .cert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .cert-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .cert-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .cert-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cert-detail-item i {
+            color: var(--primary);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px dashed var(--card-border);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+            display: inline-block;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 500px;
+            padding: 2.5rem;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: white;
+            font-family: var(--font-th);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(138, 43, 226, 0.2);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2.5rem;
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 4px solid var(--primary);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            font-family: var(--font-th);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+        
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .api-key-container {
+                width: 100%;
+            }
+            .input-glass {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="ri-medal-fill"></i>
+                <h1>VolunTrack</h1>
+            </div>
+            <div class="api-key-container">
+                <i class="ri-key-2-line" style="color: var(--text-muted)"></i>
+                <input type="password" id="apiKey" class="input-glass" placeholder="Gemini API Key">
+                <button id="saveKeyBtn" class="btn btn-outline" style="padding: 0.8rem 1rem; border-radius: 10px;" title="บันทึก Key">
+                    <i class="ri-check-line"></i> บันทึก
+                </button>
+            </div>
+        </header>
+
+        <!-- Metrics -->
+        <div class="metrics-grid">
+            <div class="glass-card metric-card">
+                <i class="ri-time-line metric-icon"></i>
+                <div class="metric-title">ชั่วโมงรวม</div>
+                <div class="metric-value" id="totalHours">0</div>
+            </div>
+            <div class="glass-card metric-card">
+                <i class="ri-timer-line metric-icon" style="color: var(--secondary)"></i>
+                <div class="metric-title">นาทีรวม</div>
+                <div class="metric-value" id="totalMinutes">0</div>
+            </div>
+            <div class="glass-card metric-card">
+                <i class="ri-file-list-3-line metric-icon" style="color: var(--success)"></i>
+                <div class="metric-title">จำนวนหลักสูตร</div>
+                <div class="metric-value" id="totalCerts">0</div>
+            </div>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="glass-card upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept="application/pdf">
+            <i class="ri-upload-cloud-2-line upload-icon"></i>
+            <div class="upload-text">ลากไฟล์ PDF มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์</div>
+            <div class="upload-subtext">ระบบจะอ่านข้อมูลเกียรติบัตรและคำนวณอัตโนมัติด้วย AI</div>
+            
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-text">
+                    <span id="progressStatus">กำลังประมวลผล PDF...</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate List -->
+        <div class="list-header">
+            <h2>รายการเกียรติบัตร</h2>
+            <button class="btn" onclick="openModal()">
+                <i class="ri-add-line"></i> เพิ่มด้วยตนเอง
+            </button>
+        </div>
+
+        <div class="certificates-grid" id="certGrid">
+            <!-- Cards will be injected here -->
+            <div class="empty-state" id="emptyState">
+                <i class="ri-inbox-line"></i>
+                <h3>ยังไม่มีข้อมูล</h3>
+                <p>อัปโหลดใบเกียรติบัตรเพื่อเริ่มต้นคำนวณชั่วโมงจิตอาสา</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Manual Entry -->
+    <div class="modal-overlay" id="manualModal">
+        <div class="glass-card modal-content">
+            <div class="modal-header">
+                <h2>เพิ่มรายการด้วยตนเอง</h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="ri-close-line"></i>
+                </button>
+            </div>
+            <div class="form-group">
+                <label for="manualTitle">ชื่อหลักสูตร / กิจกรรม</label>
+                <input type="text" id="manualTitle" class="form-control" placeholder="เช่น อบรมการปฐมพยาบาลเบื้องต้น">
+            </div>
+            <div class="form-group">
+                <label for="manualDuration">ระยะเวลา (MM:SS หรือ HH:MM:SS)</label>
+                <input type="text" id="manualDuration" class="form-control" placeholder="เช่น 37:26 หรือ 01:30:00">
+            </div>
+            <div class="form-group">
+                <label for="manualDate">วันที่</label>
+                <input type="text" id="manualDate" class="form-control" placeholder="เช่น 22 พฤษภาคม 2569">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+                <button class="btn" onclick="addManualEntry()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // State
+        let certificates = [];
+        
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const certGrid = document.getElementById('certGrid');
+        const emptyState = document.getElementById('emptyState');
+        const manualModal = document.getElementById('manualModal');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const progressStatus = document.getElementById('progressStatus');
+        
+        // Metrics Elements
+        const elTotalHours = document.getElementById('totalHours');
+        const elTotalMinutes = document.getElementById('totalMinutes');
+        const elTotalCerts = document.getElementById('totalCerts');
+
+        // Load state from local storage on init
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedCerts = localStorage.getItem('voluntrack_certs');
+            if (savedCerts) {
+                certificates = JSON.parse(savedCerts);
+                renderCertificates();
+            }
+            const savedApiKey = localStorage.getItem('gemini_api_key');
+            if (savedApiKey) {
+                document.getElementById('apiKey').value = savedApiKey;
+            }
+        });
+
+        // Save state
+        function saveState() {
+            localStorage.setItem('voluntrack_certs', JSON.stringify(certificates));
+            updateMetrics();
+        }
+
+        // Save API Key on change and button click
+        const apiKeyInput = document.getElementById('apiKey');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+
+        apiKeyInput.addEventListener('change', (e) => {
+            localStorage.setItem('gemini_api_key', e.target.value.trim());
+        });
+
+        saveKeyBtn.addEventListener('click', () => {
+            localStorage.setItem('gemini_api_key', apiKeyInput.value.trim());
+            showToast('บันทึก API Key เรียบร้อยพร้อมใช้งาน!', 'success');
+        });
+
+        // Drag & Drop Handlers
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        uploadZone.addEventListener('click', (e) => {
+            // Prevent trigger if clicking on progress bar
+            if(e.target.closest('.progress-container')) return;
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+            // reset input so same file can be selected again
+            fileInput.value = '';
+        });
+
+        // Parse Duration string to total minutes (แปลง duration MM:SS -> นาที ด้วย regex)
+        function parseDurationToMinutes(durationStr) {
+            let totalMinutes = 0;
+            
+            // ใช้ regex ดึงตัวเลข ตามที่ระบุ: แปลง duration (MM:SS) -> นาที ด้วย regex (\d+):(\d+)
+            const match = durationStr.match(/(\d+):(\d+)(?::(\d+))?/);
+            if (match) {
+                if (match[3]) {
+                    // กรณี HH:MM:SS (มี 3 กลุ่ม)
+                    const hours = parseInt(match[1]);
+                    const minutes = parseInt(match[2]);
+                    const seconds = parseInt(match[3]);
+                    totalMinutes = (hours * 60) + minutes + (seconds / 60);
+                } else {
+                    // กรณี MM:SS (มี 2 กลุ่ม)
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    totalMinutes = minutes + (seconds / 60);
+                }
+            }
+            return totalMinutes;
+        }
+
+        // Update Metrics
+        function updateMetrics() {
+            let totalMinsCalc = 0;
+            certificates.forEach(cert => {
+                totalMinsCalc += parseDurationToMinutes(cert.duration);
+            });
+
+            // คำนวณชั่วโมงและนาทีรวม
+            const totalHours = Math.floor(totalMinsCalc / 60);
+            const remainingMinutes = Math.floor(totalMinsCalc % 60);
+            
+            // แสดงผล
+            elTotalHours.textContent = totalHours;
+            elTotalMinutes.textContent = remainingMinutes; 
+            elTotalCerts.textContent = certificates.length;
+        }
+
+        // Render UI
+        function renderCertificates() {
+            // Clear grid except empty state
+            certGrid.innerHTML = '';
+            
+            if (certificates.length === 0) {
+                certGrid.appendChild(emptyState);
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                
+                certificates.forEach(cert => {
+                    const card = document.createElement('div');
+                    card.className = 'glass-card cert-card';
+                    card.innerHTML = `
+                        <div class="cert-header">
+                            <div class="cert-title">${cert.title}</div>
+                            <button class="btn-danger" onclick="deleteCert('${cert.id}')" title="ลบรายการ">
+                                <i class="ri-delete-bin-line"></i>
+                            </button>
+                        </div>
+                        <div class="cert-details">
+                            <div class="cert-detail-item">
+                                <i class="ri-time-line"></i>
+                                <span>${cert.duration}</span>
+                            </div>
+                            <div class="cert-detail-item">
+                                <i class="ri-calendar-line"></i>
+                                <span>${cert.date}</span>
+                            </div>
+                        </div>
+                    `;
+                    certGrid.appendChild(card);
+                });
+            }
+            updateMetrics();
+        }
+
+        // Delete Certificate
+        function deleteCert(id) {
+            certificates = certificates.filter(c => c.id !== id);
+            saveState();
+            renderCertificates();
+            showToast('ลบรายการสำเร็จ', 'success');
+        }
+
+        // Modal Logic
+        function openModal() {
+            manualModal.classList.add('active');
+            document.getElementById('manualTitle').value = '';
+            document.getElementById('manualDuration').value = '';
+            document.getElementById('manualDate').value = '';
+        }
+
+        function closeModal() {
+            manualModal.classList.remove('active');
+        }
+
+        function addManualEntry() {
+            const title = document.getElementById('manualTitle').value.trim();
+            const duration = document.getElementById('manualDuration').value.trim();
+            const date = document.getElementById('manualDate').value.trim();
+
+            if (!title || !duration || !date) {
+                showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+                return;
+            }
+
+            // Validation for duration format (\d+):(\d+)
+            if (!/^\d+:\d+(:\d+)?$/.test(duration)) {
+                showToast('รูปแบบเวลาไม่ถูกต้อง (ใช้ MM:SS หรือ HH:MM:SS)', 'error');
+                return;
+            }
+
+            const newCert = {
+                id: Date.now().toString(),
+                title,
+                duration,
+                date
+            };
+
+            certificates.unshift(newCert); // Add to top
+            saveState();
+            renderCertificates();
+            closeModal();
+            showToast('เพิ่มรายการสำเร็จ', 'success');
+        }
+
+        // File Handling & API
+        async function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showToast('กรุณาอัปโหลดไฟล์ PDF เท่านั้น', 'error');
+                return;
+            }
+
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showToast('กรุณาระบุ Gemini API Key ก่อนทำการอัปโหลด', 'error');
+                // Focus API key input
+                document.getElementById('apiKey').focus();
+                return;
+            }
+
+            // Show Progress
+            setUploadProgress(10, 'กำลังอ่านไฟล์ PDF...');
+            
+            try {
+                const base64Data = await readFileAsBase64(file);
+                // ตัดส่วน data:application/pdf;base64, ออก
+                const base64Clean = base64Data.split(',')[1];
+                
+                await processWithGemini(base64Clean, apiKey);
+            } catch (error) {
+                console.error(error);
+                showToast(error.message || 'เกิดข้อผิดพลาดในการอ่านไฟล์', 'error');
+                resetUploadProgress();
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Gemini API Integration
+        async function processWithGemini(base64Data, apiKey) {
+            setUploadProgress(40, 'กำลังส่งข้อมูลไปยัง AI เพื่อวิเคราะห์...');
+            
+            // Prompt ตามที่ระบุ
+            const prompt = `จาก PDF ใบเกียรติบัตรนี้ ให้ดึงข้อมูลและตอบกลับเป็น JSON เท่านั้น 
+ไม่ต้องมีคำอธิบายหรือ markdown:
+{"title":"ชื่อหลักสูตร","duration":"37:26","date":"22 พฤษภาคม 2569"}
+duration ให้อยู่ในรูป MM:SS หรือ HH:MM:SS ตามที่ระบุในเอกสาร`;
+
+            const requestBody = {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        {
+                            inlineData: {
+                                mimeType: "application/pdf",
+                                data: base64Data
+                            }
+                        }
+                    ]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                // เรียก API ของ Gemini 2.5 Flash
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                setUploadProgress(80, 'กำลังแปลงข้อมูล...');
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiText = data.candidates[0].content.parts[0].text;
+                
+                // Parse JSON output
+                // ทำความสะอาดข้อความ เผื่อ AI ตอบกลับมามี markdown
+                let cleanJson = aiText.trim();
+                if (cleanJson.startsWith('```json')) {
+                    cleanJson = cleanJson.replace(/```json\n?/g, '').replace(/```/g, '');
+                } else if (cleanJson.startsWith('```')) {
+                    cleanJson = cleanJson.replace(/```\n?/g, '').replace(/```/g, '');
+                }
+                
+                const certData = JSON.parse(cleanJson);
+                
+                if (!certData.title || !certData.duration || !certData.date) {
+                    throw new Error('ข้อมูลที่ได้จาก AI ไม่ครบถ้วน (JSON Format Error)');
+                }
+
+                setUploadProgress(100, 'เสร็จสมบูรณ์!');
+
+                // บันทึกและอัปเดตหน้าจอ
+                const newCert = {
+                    id: Date.now().toString(),
+                    title: certData.title,
+                    duration: certData.duration,
+                    date: certData.date
+                };
+
+                certificates.unshift(newCert);
+                saveState();
+                renderCertificates();
+                showToast('ดึงข้อมูลอัตโนมัติสำเร็จ', 'success');
+
+                setTimeout(resetUploadProgress, 1500);
+
+            } catch (error) {
+                console.error('Gemini API Error:', error);
+                
+                let errorMsg = error.message;
+                // ตรวจจับ CORS หรือปัญหาเครือข่าย
+                if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                    errorMsg = 'ไม่สามารถเชื่อมต่อ API ได้ (โปรดตรวจสอบ API Key หรือการเชื่อมต่ออินเทอร์เน็ต)';
+                }
+                
+                throw new Error(errorMsg);
+            }
+        }
+
+        // Progress UI Helpers
+        function setUploadProgress(percent, text) {
+            progressContainer.style.display = 'block';
+            progressBar.style.width = `${percent}%`;
+            progressPercentage.textContent = `${percent}%`;
+            progressStatus.textContent = text;
+        }
+
+        function resetUploadProgress() {
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = type === 'success' ? 'ri-check-line' : type === 'error' ? 'ri-error-warning-line' : 'ri-information-line';
+            
+            toast.innerHTML = `
+                <i class="${icon}" style="font-size: 1.5rem;"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Remove after 4s
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
