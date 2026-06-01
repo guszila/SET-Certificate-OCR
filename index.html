@@ -599,9 +599,14 @@
         <!-- Certificate List -->
         <div class="list-header">
             <h2>รายการเกียรติบัตร</h2>
-            <button class="btn" onclick="openModal()">
-                <i class="ri-add-line"></i> เพิ่มด้วยตนเอง
-            </button>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-outline" onclick="exportData()">
+                    <i class="ri-download-2-line"></i> ส่งออกข้อมูล (CSV)
+                </button>
+                <button class="btn" onclick="openModal()">
+                    <i class="ri-add-line"></i> เพิ่มด้วยตนเอง
+                </button>
+            </div>
         </div>
 
         <div class="certificates-grid" id="certGrid">
@@ -669,6 +674,17 @@
             const savedCerts = localStorage.getItem('voluntrack_certs');
             if (savedCerts) {
                 certificates = JSON.parse(savedCerts);
+                let needsSave = false;
+                certificates.forEach(cert => {
+                    const formatted = formatDurationToHHMMSS(cert.duration);
+                    if (cert.duration !== formatted) {
+                        cert.duration = formatted;
+                        needsSave = true;
+                    }
+                });
+                if (needsSave) {
+                    saveState();
+                }
                 renderCertificates();
             }
             const savedApiKey = localStorage.getItem('gemini_api_key');
@@ -751,6 +767,25 @@
             return totalMinutes;
         }
 
+        function formatDurationToHHMMSS(durationStr) {
+            if (!durationStr) return "00:00:00";
+            const match = String(durationStr).trim().match(/(\d+):(\d+)(?::(\d+))?/);
+            if (match) {
+                if (match[3]) {
+                    const h = match[1].padStart(2, '0');
+                    const m = match[2].padStart(2, '0');
+                    const s = match[3].padStart(2, '0');
+                    return `${h}:${m}:${s}`;
+                } else {
+                    const h = "00";
+                    const m = match[1].padStart(2, '0');
+                    const s = match[2].padStart(2, '0');
+                    return `${h}:${m}:${s}`;
+                }
+            }
+            return String(durationStr);
+        }
+
         // Update Metrics
         function updateMetrics() {
             let totalMinsCalc = 0;
@@ -814,6 +849,42 @@
             showToast('ลบรายการสำเร็จ', 'success');
         }
 
+        // Export Data
+        function exportData() {
+            if (certificates.length === 0) {
+                showToast('ไม่มีข้อมูลให้ส่งออก', 'error');
+                return;
+            }
+
+            // Create CSV content with BOM for Excel UTF-8 compatibility
+            let csvContent = "\uFEFF";
+            csvContent += "ชื่อหลักสูตร,ระยะเวลา,วันที่\n";
+            
+            certificates.forEach(cert => {
+                const title = '"' + cert.title.replace(/"/g, '""') + '"';
+                const duration = '"' + cert.duration + '"';
+                const date = '"' + cert.date + '"';
+                csvContent += `${title},${duration},${date}\n`;
+            });
+
+            // Add total hours summary row
+            const totalHours = document.getElementById('totalHours').textContent;
+            const totalMinutes = document.getElementById('totalMinutes').textContent;
+            csvContent += `\n"รวมเวลาทั้งหมด","${totalHours} ชั่วโมง ${totalMinutes} นาที",""\n`;
+
+            // Trigger download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", "voluntrack_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('ส่งออกข้อมูลสำเร็จ', 'success');
+        }
+
         // Modal Logic
         function openModal() {
             manualModal.classList.add('active');
@@ -845,7 +916,7 @@
             const newCert = {
                 id: Date.now().toString(),
                 title,
-                duration,
+                duration: formatDurationToHHMMSS(duration),
                 date
             };
 
@@ -964,7 +1035,7 @@ duration ให้อยู่ในรูป MM:SS หรือ HH:MM:SS ตา
                 const newCert = {
                     id: Date.now().toString(),
                     title: certData.title,
-                    duration: certData.duration,
+                    duration: formatDurationToHHMMSS(certData.duration),
                     date: certData.date
                 };
 
